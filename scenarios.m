@@ -57,10 +57,12 @@ for myl = 1:3
     
 end
 
-subplot(1,1,1);
+figure(1); subplot(1,1,1);
 h = plot(myspokes'./myfov.^2,myfwhm');
 xlabel('N / matrix^2'); ylabel('FWHM (Δx)'); grid on;
 h(1).Marker = 'o'; h(2).Marker = 'sq'; h(3).Marker = 'd';
+h(1).MarkerIndices = 1:2:numel(myspokes);
+h(2).MarkerIndices = 2:2:numel(myspokes);
 legend({'radial', 'density adpt','corkscrew'}); xlim([0.1 3.1]);
 drawnow;
 
