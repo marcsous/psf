@@ -2,14 +2,14 @@
 %
 % the first set of simulations neglect T2, the second set use biexponential.
 %
-% the code keeps everything in the current workspace to pass around
-%  - scenarios.m: set up a few key situations to examine
-%  - setup.m: create trajectories and technical settings
-%  - simulate.m: execute the reconstruction and displays
+% the code keeps everything in the workspace to pass between scripts
+%  - scenarios.m: sets up a few key situations to examine
+%  - setup.m: creates trajectories and technical settings
+%  - simulate.m: executes the reconstruction and displays
 %
-% tricky: code uses eval(expression) to override settings in simulate.m.
+% tricky: simulate.m uses eval(expression) to override default settings.
 %
-% total runtime is approximately 2 hours on recent (2020 model) GPU.
+% the total runtime is ~2 hours on a recent 8Gb GPU or ~24 hours on CPU.
 %
 clear all
 close all
@@ -21,10 +21,10 @@ if ~exist('nufft_3d.m','file'); error('nufft_3d.m required'); end
 te0 = 0; % ms
 
 % reconstruction (1=regridding 10=least squares)
-maxit = 10;
+maxit = 10; 
 
-% open all the windows to prevent them popping up randomly
-for k = 1:8; h=figure(k); h.Position=[8 604 424 363]; end; drawnow;
+% open all windows to prevent them popping up randomly
+for k = 1:9; h=figure(k); h.Position=[8 604 424 363]; end; drawnow;
 
 %% 1: single component long T2 - "ideal" case
 
@@ -37,8 +37,8 @@ myfov = 128;
 
 % range of spokes to simulate
 mynyquist = pi*myfov^2;
-myspokes = round(linspace(mynyquist*0.05,mynyquist*0.97,25));
-                
+myspokes = round(linspace(mynyquist*0.06,mynyquist*0.96,25));
+
 % 1=radial 2=density, 3=corksrew
 for myl = 1:3
     
@@ -124,14 +124,27 @@ yticks(h(1),1.5:0.1:3.3);
 yticks(h(2),[0 100]);
 grid on; drawnow;
 
+% target phi for given N
+h=figure(3);h.Name='target phi versus N';drawnow
+
+myfov = 128;
+myangles = 0:0.5:90;
+myspokes = round((sin(myangles*pi/360)./(1+sin(myangles*pi/360))).^2*pi*myfov^2);
+mytarget = 2*acsc(sqrt(pi./myspokes)*myfov-1)*180/pi; % should == myspokes
+
+plot(myspokes/myfov^2,mytarget); xlabel('N / matrix^2'); ylabel('Angular Rate (deg/dwelltime)');
+hold on; plot(myspokes/myfov^2,mytarget/2,'black--'); hold off; grid on; axis tight;
+legend({'Target ϕ for a given N','Heuristic (divided by 2)'},'location','NorthWest');
+drawnow
+
 clear my*
 
 %% randomize phase versus FWHM
-h=figure(3);h.Name='randomize phase versus FWHM';drawnow
+h=figure(4);h.Name='randomize phase versus FWHM';drawnow
 
 myfov = 128;
 mynyquist = pi*myfov^2;
-myspokes = round(linspace(mynyquist*0.05,mynyquist*0.97,25));
+myspokes = round(linspace(mynyquist*0.06,mynyquist*0.96,25));
 
 for myj = 1:2
     
@@ -160,7 +173,7 @@ end
 clear my*
 
 %% calculate point density in a shell
-h=figure(4);h.Name='density in a shell';drawnow
+h=figure(5);h.Name='density in a shell';drawnow
 
 myfov = 128;
 mynyquist = pi*myfov^2;
@@ -202,11 +215,11 @@ end
 clear my*
 
 %% regrid(iterative), regrid(analytical), least squares
-h=figure(5);h.Name='reconstruction';drawnow
+h=figure(6);h.Name='reconstruction';drawnow
 
 myfov = 128;
 mynyquist = pi*myfov^2;
-myspokes = round(linspace(mynyquist*0.05,mynyquist*0.97,25));
+myspokes = round(linspace(mynyquist*0.06,mynyquist*0.96,25));
 
 mymaxit(1) = 1; % regrid (iterative weighting)
 mymaxit(2) = 1; % regrid (analytical weighting)
@@ -243,17 +256,19 @@ hold off;
 legend({'regridding (iterative)','regridding (analytic)','least squares (iterative)','least squares (analytic)'}); xlim([0.1 3.1]);
 xlabel('N / matrix^2'); ylabel('FWHM (Δx)'); grid on; drawnow;
 
+clear my*
+
 %% 2: biexponential T2 - "sodium" case
 
 NA = [0.4 0.6]; % typical signal fractions
 T2 = [ 23   3]; % typical decay constants (ms)
 
 %% voxel fwhm vs. nspokes + T2
-h=figure(6);h.Name='voxel fwhm vs. nspokes + T2';drawnow
+h=figure(7);h.Name='voxel fwhm vs. nspokes + T2';drawnow
 
 myfov = 128;
 mynyquist = pi*myfov^2;
-myspokes = round(linspace(mynyquist*0.05,mynyquist*0.97,25));
+myspokes = round(linspace(mynyquist*0.06,mynyquist*0.96,25));
         
 % 1=radial, 2=density, 3=corkscrew
 for myl = 1:3
@@ -282,7 +297,7 @@ h = plot(myspokes'./myfov.^2,myfwhm(:,2)','sq-');
 h = plot(myspokes'./myfov.^2,myfwhm(:,3)','d-');
 hold off
 xlabel('N / matrix^2'); ylabel('FWHM (Δx)');
-xlim([0.1 3.1]); ylim([1.5 3.2]); grid on;
+xlim([0.1 3.1]); ylim([1.5 3.1]); grid on;
 
 % overlay the no T2 case for radial
 hold on
@@ -294,7 +309,7 @@ legend({'radial', 'density adpt','corkscrew','radial (no T2)'});
 clear my*
 
 %% voxel fwhm vs. bandwidth + T2
-h=figure(7);h.Name='voxel fwhm vs. bandwidth + T2';drawnow
+h=figure(8);h.Name='voxel fwhm vs. bandwidth + T2';drawnow
 
 myfov = 128;
 myspokes = 10000;
@@ -326,10 +341,10 @@ h = plot(mybandwidth,myfwhm,'o-');
 h(2).Marker = 'sq';
 h(3).Marker = 'diamond';
 xlabel('Bandwidth (Hz/pixel)'); ylabel('FWHM (Δx)');
-xlim([0 200]); ylim([1.5 3.2]); grid on; 
+xlim([0 200]); ylim([1.5 3.1]); grid on; 
 legend({'radial', 'density adpt','corkscrew'}); drawnow;
 
-h=figure(8);h.Name='snr vs. bandwidth + T2';drawnow
+h=figure(9);h.Name='snr vs. bandwidth + T2';drawnow
 snr = (mypeak.*sqrt(myreadoutduration))';
 h = plot(mybandwidth,snr,'o-');
 h(2).Marker = 'sq';

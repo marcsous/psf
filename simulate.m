@@ -18,8 +18,9 @@ g.lT0 = 0; % time to start density adapted (0=automatic)
 g.bandwidth = 80; % Hz/pixel
 g.osf = 2; % oversampling factor (1=Nyquist limit)
 g.bRandomizePhase = 0; % randomize corkscrew phase
-g.lAngularRate = 32.03967; % corkscrew rotation (osf*deg/dwell)
+g.lAngularRate = 0; % corkscrew rotation rate (0=automatic)
 g.n = 4; % tesselating polygon (3=triangle 4=square etc.)
+g.spokeDirections = 'golden'; % 'golden' or 'spiral'
 
 %% reconstruction settings (default values)
 g.J = 4; % width of kaiser-bessel kernel
@@ -44,6 +45,16 @@ g.lDwellTime = round(g.dNyquist / g.osf / 1e-3); % ns
 g.lGRADdelay = 0; % us gradient delay correction
 g.lGRADsettle = 0; % us (settling time after ramp, 100us)
 g.lReadRewTime = g.lGRADsettle; % us (time for rewinder, e.g. lGRADsettle) 
+
+% heuristic angular rate calcuation (deg/dwell)
+if g.lAngularRate == 0
+    if g.lRadialSpokes/g.siz(1)^2 < 0.5
+        g.lAngularRate = acsc(sqrt(pi/g.lRadialSpokes)*g.siz(1)-1) * 180 / pi;
+    else
+        g.lAngularRate = acsc(sqrt(2*pi)-1) * 180 / pi; % fix N/matrix^2 = 0.5
+    end
+    g.lAngularRate = round(g.lAngularRate); % in C++ code it is a long
+end
 
 % noise std dev (to give a ballpark SNR ~ 10)
 sd = sqrt(g.bandwidth) / 20;
@@ -117,17 +128,24 @@ img = g.recon.iNUFT(data,g.maxit,g.damping,[],'phase-constraint',g.lambda);
 noise = complex(randn(size(data)),randn(size(data))) * sd;
 noise = g.recon.iNUFT(noise,g.maxit,g.damping,[],'phase-constraint',g.lambda);
 
-%% display the psf and supported fov
+%% display the psf and artefact-free fov
 
 psf = real(img);
 
 % middle slice
 mid = 1+g.siz(3)/2; 
 
+% artefact-free fov (radial)
+artefact_free_fov = sqrt(g.lRadialSpokes/pi);
+
+% artefact_free_fov is a diameter but simulations show it is
+% an underestimate by a factor of ~2 so we use it as a radius
+% below (similar to the 2x overestimate of Nyquist no. spokes)
+
 subplot(2,3,4);
 imagesc(log(abs(psf(:,:,mid))),[-12 0]);
-title(sprintf('FOV %.1f (%i spokes)',1.1*sqrt(g.lRadialSpokes),g.lRadialSpokes));
-images.roi.Circle(gca,'Center',[mid mid],'Radius',1.1*sqrt(g.lRadialSpokes)/2);
+images.roi.Circle(gca,'Center',[mid mid],'Radius',artefact_free_fov);
+title(sprintf('FOV %.1f (%i spokes)',artefact_free_fov,g.lRadialSpokes));
 
 %% interpolate to give a smoother psf
 

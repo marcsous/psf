@@ -44,7 +44,15 @@ for lI = 0:flintmax() % Inf
     dV = 1 - lI * dInc; % decrement from +1 to -1
     if dV < -1-dInc/2; break; end % allow a little overrun
     g.dPolarAngle(lI+1) = acos(max(dV,-1.0)); % stretch spacing along z
-    g.dAzimuAngle(lI+1) = lI * M_PI * (3.0 - sqrt(5.0)); % preserve golden angle
+    g.dAzimuAngle(lI+1) = lI * M_PI * (3.0 - sqrt(5.0)); % golden angle
+    
+    if isequal(g.spokeDirections,'spiral')
+        if lI == 0 || dV <= -1
+            g.dAzimuAngle(lI+1) = 0;
+        else
+            g.dAzimuAngle(lI+1) = mod(g.dAzimuAngle(lI)+3.6/sqrt(lRadialSpokes*(1-dV*dV)),2*pi);
+        end
+    end
 end
 lLinesToMeasure = lI; ny = lLinesToMeasure; % this is now the correct no. spokes
 
@@ -60,7 +68,7 @@ for lI = 0:lLinesToMeasure-1
     g.dAzimuAngle(lI+1) = round(g.dAzimuAngle(lI+1) / dconv) * dconv;
 end
 
-% reorder spokes by interleaving
+% reorder spokes by interleaving (only useful for golden)
 lI = 0;
 for lInterleaf = 0:lInterleaves-1
     lJ = lInterleaf;
