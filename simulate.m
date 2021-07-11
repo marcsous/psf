@@ -138,8 +138,8 @@ mid = 1+g.siz(3)/2;
 % artefact-free fov (radial)
 artefact_free_fov = sqrt(g.lRadialSpokes/pi);
 
-% artefact_free_fov is a diameter but simulations show it is
-% an underestimate by a factor of ~2 so we use it as a radius
+% artefact_free_fov is the diameter but simulations show it is
+% an underestimate by a factor of ~2 so we use it as the radius
 % below (similar to the 2x overestimate of Nyquist no. spokes)
 
 subplot(2,3,4);
