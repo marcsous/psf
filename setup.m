@@ -104,11 +104,6 @@ k0 = kmax;        % spatial frequency to go to density adapted
 kz = 0.0;	      % current spatial frequency [phase rolls/mm]
 Gz = 0.0;         % current value of the gradient [mT/m]
 
-% rewinder area = lGRADsettle on the flattop plus ramp up
-if lReadRewTime
-    kz = -dGamma * dMaxGrad * 1e-6 * (lGRADsettle + lRampSamples * dt / 2);
-end
-
 % ramp up
 while( Gz < dMaxGrad )
     
@@ -121,6 +116,11 @@ while( Gz < dMaxGrad )
     
 end
 Gz = dMaxGrad;
+
+% rewinder area = lGRADsettle on the flattop plus ramp up
+if lReadRewTime
+    kz = kz - dGamma * dMaxGrad * 1e-6 * (lGRADsettle + lRampSamples * dt / 2);
+end
 
 % density adapted readout
 if uReadoutType~=0
@@ -190,10 +190,10 @@ end
 %% non-projection options
 
 % starting point in kz [1/mm]
-if lReadRewTime
-    kz = -dGamma * dMaxGrad * 1e-6 * (lGRADsettle + lRampSamples * dt / 2);
-else
+if lReadRewTime==0
     kz = 0;
+else
+    kz = -dGamma * dMaxGrad * 1e-6 * (lGRADsettle + lRampSamples * dt / 2);
 end
 
 % angle and radius of the oscillation
@@ -293,7 +293,7 @@ aGz = interp1(raster_time,[0 aGz 0],sample_time);
 om = dGamma * cumsum([aGx;aGy;aGz] * lDwellTime * 1e-9, 2); % 1/mm
 
 if lReadRewTime
-    om(3,:) = om(3,:) - dGamma * dMaxGrad * (lGRADsettle + lRampSamples * dt / 2) * 1e-9; % 1/mm
+    om(3,:) = om(3,:) - dGamma * dMaxGrad * (lGRADsettle + lRampSamples * dt / 2) * 1e-6; % 1/mm
 end
 
 % trim out of bounds points
