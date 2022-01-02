@@ -83,11 +83,6 @@ g.dPolarAngle = g.dPolarAngle(lNewOrder);
 
 %% readout gradient
 
-% single precision is enough
-aGx = single([]);
-aGy = single([]);
-aGz = single([]);
-
 % target spatial frequency = dGamma (MHz/T) * integral{gradient (mT/m) * dt (s)} (1/mm)
 kmax = dGamma * 0.5 * siz(1) * dMaxGrad * dNyquist * 1e-6; % 1/mm
 
@@ -97,29 +92,27 @@ if (kmax<=0 || dMaxGrad<=0 || dNyquist<=0 || dMaxSlew<=0)
 end
 
 % define the gradient shape: aGz=mT/m, dt=µs, slew=mT/m/ms
-lRampSamples = 0; % the number of points on the ramp up and down
-lGradSamples = 0; % the number of points for the readout gradient
+aGx = []; aGy = []; aGz = []; % arrays for Gx, Gy Gz waveforms
 dt = 10;          % raster time (not tested except = 10) [µs]
-k0 = kmax;        % spatial frequency to go to density adapted
+k0 = kmax;        % spatial frequency to go density adapted
 kz = 0.0;	      % current spatial frequency [phase rolls/mm]
 Gz = 0.0;         % current value of the gradient [mT/m]
+lGradSamples = 0; % no. points on the entire readout gradient
+lRampTime = ceil(1e3 * dMaxGrad / dMaxSlew / dt) * dt; % us
+lRampSamples = lRampTime/dt; % no. points on the gradient ramp
 
-% ramp up
-while( Gz < dMaxGrad )
+% readout rewinder = lGRADsettle on the flattop plus ramp up
+if lReadRewTime
+    kz = kz - dGamma * dMaxGrad * 1e-6 * (lGRADsettle + lRampTime / 2);
+end
+
+% ramp up to dMaxGrad
+for lGradSamples = 1:lRampSamples
     
     aGz(lGradSamples+1) = Gz;
     kz = kz + dGamma * Gz * 1e-6 * dt;
-    Gz = Gz + dMaxSlew * 1e-3 * dt;
+    Gz = Gz + dMaxGrad / lRampSamples;
     
-    lRampSamples = lRampSamples + 1;
-    lGradSamples = lGradSamples + 1;
-    
-end
-Gz = dMaxGrad;
-
-% rewinder area = lGRADsettle on the flattop plus ramp up
-if lReadRewTime
-    kz = kz - dGamma * dMaxGrad * 1e-6 * (lGRADsettle + lRampSamples * dt / 2);
 end
 
 % density adapted readout
@@ -131,11 +124,11 @@ if uReadoutType~=0
         k0 = sqrt(n*tan(M_PI/n)*lRadialSpokes/16/M_PI) / fov(1);
         
         % optimal lT0 based on k0 (us)
-        lT0 = round(lRampSamples*dt + (k0-kz) / dGamma / dMaxGrad / 1e-6);
+        lT0 = round(lRampTime + (k0-kz) / dGamma / dMaxGrad / 1e-6);
         
     end
 
-    k0 = kz + max(lT0-lRampSamples*dt,0.0) * dGamma * Gz * 1e-6;
+    k0 = kz + max(lT0-lRampTime,0) * dGamma * Gz * 1e-6;
 
     % pass back to caller
     g.k0 = k0*fov(1);
@@ -191,9 +184,9 @@ end
 
 % starting point in kz [1/mm]
 if lReadRewTime==0
-    kz = 0;
+    kz = 0;  
 else
-    kz = -dGamma * dMaxGrad * 1e-6 * (lGRADsettle + lRampSamples * dt / 2);
+    kz = -dGamma * dMaxGrad * 1e-6 * (lGRADsettle + lRampTime / 2);
 end
 
 % angle and radius of the oscillation
@@ -293,7 +286,7 @@ aGz = interp1(raster_time,[0 aGz 0],sample_time);
 om = dGamma * cumsum([aGx;aGy;aGz] * lDwellTime * 1e-9, 2); % 1/mm
 
 if lReadRewTime
-    om(3,:) = om(3,:) - dGamma * dMaxGrad * (lGRADsettle + lRampSamples * dt / 2) * 1e-6; % 1/mm
+    om(3,:) = om(3,:) - dGamma * dMaxGrad * (lGRADsettle + lRampTime / 2) * 1e-6; % 1/mm
 end
 
 % trim out of bounds points
