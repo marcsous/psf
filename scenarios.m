@@ -43,10 +43,10 @@ myspokes = round(linspace(mynyquist*0.06,mynyquist*0.96,25));
 for myl = 1:3
     
     for myk = 1:size(myspokes,2)
-        
+
         expression = ['g.lRadialSpokes = myspokes(myk); g.fov = myfov; g.siz = g.fov;'];
         expression = [expression 'g.uReadoutType = myl-1; g.maxit = maxit;'];
-        
+
         simulate;
         
         myvol(myk,myl) = vol;

@@ -16,7 +16,7 @@ g.dGamma = 11.262; % gyromagnetic ratio (H=42.5775 NA=11.262)
 g.uReadoutType = 0; % 0=radial 1=density adapted 2=corkscrew
 g.lT0 = 0; % time to start density adapted (0=automatic)
 g.bandwidth = 80; % Hz/pixel
-g.osf = 2; % oversampling factor (1=Nyquist limit)
+g.osf = 1.5; % oversampling factor (1=Nyquist limit)
 g.bRandomizePhase = 0; % randomize corkscrew phase
 g.lAngularRate = 0; % corkscrew rotation rate (0=automatic)
 g.n = 4; % tesselating polygon (3=triangle 4=square etc.)
@@ -42,6 +42,7 @@ end
 g.lInterleaves = 13; % reorder spokes into interleaves
 g.dNyquist = 1e6 / g.bandwidth / g.siz(1); % us
 g.lDwellTime = round(g.dNyquist / g.osf / 1e-3); % ns
+g.lDwellTime = 64570
 g.lGRADdelay = 0; % us gradient delay correction
 g.lGRADsettle = 0; % us (settling time after ramp, 100us)
 g.lReadRewTime = g.lGRADsettle; % us (time for rewinder, e.g. lGRADsettle) 
@@ -139,12 +140,14 @@ mid = 1+g.siz(3)/2;
 artefact_free_fov = sqrt(g.lRadialSpokes/pi);
 
 % artefact_free_fov is the diameter but simulations show it is
-% an underestimate by a factor of ~2 so we use it as the radius
+% underestimated by a factor of ~2 so we use it as the radius
 % below (similar to the 2x overestimate of Nyquist no. spokes)
+radius = artefact_free_fov; 
 
 subplot(2,3,4);
 imagesc(log(abs(psf(:,:,mid))),[-12 0]);
-images.roi.Circle(gca,'Center',[mid mid],'Radius',artefact_free_fov);
+rectangle('Position',[mid-radius,mid-radius,2*radius,2*radius],...
+          'Curvature',[1 1],'EdgeColor','#0072BD','LineWidth',2.0);
 title(sprintf('FOV %.1f (%i spokes)',artefact_free_fov,g.lRadialSpokes));
 
 %% interpolate to give a smoother psf
@@ -184,7 +187,7 @@ vol = sum(psf(:)) / osf^3;
 mid = npixels*osf+1;
 
 subplot(2,3,5);
-surfl(psf(:,:,mid)); view(45,30); shading interp;
+try;surfl(psf(:,:,mid));end;view(45,30);shading interp;
 xlabel('x (mm)'); ylabel('y (mm)'); axis tight;
 title(sprintf('PSF: [volume %.3f mm^3]',vol));
 
