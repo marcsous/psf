@@ -187,7 +187,7 @@ for myj = 1:numel(mylT0)
     % get the same result with osf=1 but "noisier" so prefer osf=2
     expression = ['g.lRadialSpokes = myspokes; g.fov = myfov; g.siz = g.fov; g.maxit = maxit;'];
     expression = [expression 'g.uReadoutType = 1; g.osf = 2; g.lT0 = mylT0(myj);'];
-    expression = [expression '; g.gpu = 1; g.bandwidth = mybandwidth'];
+    expression = [expression '; g.bandwidth = mybandwidth'];
     
     simulate;
     

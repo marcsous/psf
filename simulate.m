@@ -17,10 +17,10 @@ g.uReadoutType = 0; % 0=radial 1=density adapted 2=corkscrew
 g.lT0 = 0; % time to start density adapted (0=automatic)
 g.bandwidth = 80; % Hz/pixel
 g.osf = 1.5; % oversampling factor (1=Nyquist limit)
-g.bRandomizePhase = 0; % randomize corkscrew phase
+g.bRandomizePhase = 0; % randomize corkscrew phase (1=yes 0=no)
 g.lAngularRate = 0; % corkscrew rotation rate (0=automatic)
 g.n = 4; % tesselating polygon (3=triangle 4=square etc.)
-g.spokeDirections = 'golden'; % 'golden' or 'spiral'
+g.spokeDirections = 'spiral'; % 'golden' or 'spiral' (spiral shows streaks better)
 
 %% reconstruction settings (default values)
 g.J = 4; % width of kaiser-bessel kernel
@@ -30,7 +30,7 @@ g.maxit = 0; % no. of least squares iterations
 g.damping = 0.0; % least squares Tikhonov damping
 g.lambda = 0.0; % least squares phase constraint
 g.density = ''; % '' for automatic or 'radial'
-g.gpu = 1; % use GPU if available
+g.gpu = 2; % use GPU: 1=gpuSparse 2=gpuArray
 
 %% evaluate "expression"
 
@@ -147,7 +147,7 @@ radius = artefact_free_fov;
 subplot(2,3,4);
 imagesc(log(abs(psf(:,:,mid))),[-12 0]);
 rectangle('Position',[mid-radius,mid-radius,2*radius,2*radius],...
-          'Curvature',[1 1],'EdgeColor','#0072BD','LineWidth',2.0);
+          'Curvature',[1 1],'EdgeColor',[0 0.447 0.741],'LineWidth',2.0);
 title(sprintf('FOV %.1f (%i spokes)',artefact_free_fov,g.lRadialSpokes));
 
 %% interpolate to give a smoother psf
